@@ -2,6 +2,7 @@ import assert from "assert";
 import { expect } from "chai";
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
+import { SystemProgram } from "@solana/web3.js";
 import { Lottery } from "../target/types/lottery";
 
 describe("lottery", () => {
@@ -50,28 +51,37 @@ describe("lottery", () => {
   });
 
   it("Creates a lottery account", async () => {
-    await program.methods
-      .initialiseLottery(new anchor.BN(LAMPORTS_PER_SOL), oracle.publicKey)
-      .accounts({
-        lottery: lottery.publicKey,
-        admin: lottery_admin.publicKey,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([lottery, lottery_admin])
-      .rpc();
+    try {
+      await program.methods
+        .initialiseLottery(new anchor.BN(LAMPORTS_PER_SOL), oracle.publicKey)
+        .accounts({
+          lottery: lottery.publicKey,
+          admin: lottery_admin.publicKey,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([lottery, lottery_admin])
+        .rpc();
 
-    let lotteryState = await program.account.lottery.fetch(lottery.publicKey);
+      console.log("Lottery account initialized at:", lottery.publicKey.toString());
 
-    // Assert lottery intiliased to zero
-    expect(lotteryState.count).to.equal(0);
+      let lotteryState = await program.account.lottery.fetch(lottery.publicKey);
+      console.log("Lottery state after initialization:", lotteryState);
 
-    // Assert authority matches lottery admin
-    expect(lotteryState.authority.toString()).to.equal(
-      lottery_admin.publicKey.toString()
-    );
+      // Assert lottery intiliased to zero
+      expect(lotteryState.count).to.equal(0);
 
-    // Assert ticket price has been set
-    expect(lotteryState.ticketPrice.toNumber()).to.equal(LAMPORTS_PER_SOL);
+      // Assert authority matches lottery admin
+      expect(lotteryState.authority.toString()).to.equal(
+        lottery_admin.publicKey.toString()
+      );
+
+      // Assert ticket price has been set
+      expect(lotteryState.ticketPrice.toNumber()).to.equal(LAMPORTS_PER_SOL);
+
+    } catch (err) {
+      console.error("Failed to initialize lottery:", err);
+      assert(false);
+    }
   });
 
   it("Submits a bid as player1", async () => {
