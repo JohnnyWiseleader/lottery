@@ -67,19 +67,48 @@ pub mod lottery {
 
     // Payout prize to the winner
     pub fn pay_out_winner(ctx: Context<Payout>) -> Result<()> {
-
         // Check if it matches the winner address
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
-        let recipient: &mut AccountInfo =  &mut ctx.accounts.winner;        
-
-        // Get total money stored under original lottery account
-        let balance: u64 = lottery.to_account_info().lamports();                      
-            
-        **lottery.to_account_info().try_borrow_mut_lamports()? -= balance;
-        **recipient.to_account_info().try_borrow_mut_lamports()? += balance; 
-        
+        let recipient: &mut AccountInfo = &mut ctx.accounts.winner;
+    
+        // Get total balance
+        let balance: u64 = lottery.to_account_info().lamports();
+    
+        // Calculate 10% holdback
+        let holdback_amount: u64 = balance / 10;
+        let payout_amount: u64 = balance - holdback_amount;
+    
+        // Store the holdback in the escrow field
+        lottery.escrow += holdback_amount;
+    
+        // Transfer 90% to the winner
+        **lottery.to_account_info().try_borrow_mut_lamports()? -= payout_amount;
+        **recipient.to_account_info().try_borrow_mut_lamports()? += payout_amount;
+    
         Ok(())
     }
+
+    // allow admin to withdraw 10% of funds from escrow
+    pub fn withdraw_escrow(ctx: Context<WithdrawEscrow>) -> Result<()> {
+        let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
+        let admin: &mut Signer = &mut ctx.accounts.admin;
+    
+        // Ensure only the admin can withdraw
+        require_keys_eq!(lottery.authority, admin.key(), LotteryError::Unauthorized);
+    
+        // Get escrowed balance
+        let escrow_amount = lottery.escrow;
+        require!(escrow_amount > 0, LotteryError::NoEscrowFunds);
+    
+        // Reset escrow in the lottery struct
+        lottery.escrow = 0;
+    
+        // Transfer escrow funds to admin
+        **lottery.to_account_info().try_borrow_mut_lamports()? -= escrow_amount;
+        **admin.to_account_info().try_borrow_mut_lamports()? += escrow_amount;
+    
+        Ok(())
+    }    
 }
 
 // Contexts
@@ -136,6 +165,13 @@ pub struct Payout<'info> {
     pub ticket: Account<'info, Ticket>,            // Winning PDA
 }
 
+#[derive(Accounts)]
+pub struct WithdrawEscrow<'info> {
+    #[account(mut, has_one = authority)]  
+    pub lottery: Account<'info, Lottery>,
+    #[account(mut)]
+    pub admin: Signer<'info>, 
+}
 
 // Accounts
 ////////////////////////////////////////////////////////////////
@@ -149,6 +185,7 @@ pub struct Lottery {
     pub winner_index: u32, 
     pub count: u32,
     pub ticket_price: u64,
+    pub escrow: u64, // hold 10% of payout in this field
 }
 
 // Ticket PDA
