@@ -262,6 +262,11 @@ describe("lottery", () => {
       player2.publicKey
     );
 
+    let lotteryBalance = await provider.connection.getBalance(lottery.publicKey);
+    const expectedPayout = Math.floor(lotteryBalance * 0.9);
+    const expectedHoldback = Math.floor(lotteryBalance * 0.1);
+
+
     // Get winner idx
     let winnerIdx: number = (
       await program.account.lottery.fetch(lottery.publicKey)
@@ -292,16 +297,16 @@ describe("lottery", () => {
     expect(endBalanace).to.be.greaterThan(startBalance);
 
     // Verify 90% was transferred to the winner
-    const expectedPayout = Math.floor(startBalance * 0.9);
     assert.equal(
       endBalanace - startBalance,
       expectedPayout,
       "Winner should receive 90% of the lottery balance"
     );
 
+    // get the current lottery balance after payout
     const updatedLottery = await program.account.lottery.fetch(lottery.publicKey);
+
     // Verify 10% remains in escrow
-    const expectedHoldback = Math.floor(startBalance * 0.1);
     assert.equal(
       updatedLottery.escrow,
       expectedHoldback,
