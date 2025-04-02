@@ -355,39 +355,39 @@ describe("lottery", () => {
   //   );
   // });
 
-  // it("Allows the admin to withdraw the 10% holdback", async () => {
-  //   const lotteryAccount = await program.account.lottery.fetch(lottery.publicKey);
-  //   const escrowAmount = lotteryAccount.escrow;
-  //   assert(escrowAmount > 0, "Escrow should have funds before withdrawal");
+  it("Allows the admin to withdraw the 10% holdback", async () => {
+    const lotteryAccount = await program.account.lottery.fetch(lottery.publicKey);
+    const escrowAmount = lotteryAccount.escrow;
+    assert(escrowAmount > 0, "Escrow should have funds before withdrawal");
 
-  //   // Fetch admin's initial balance
-  //   const adminInitialBalance = await provider.connection.getBalance(admin.publicKey);
+    // Fetch admin's initial balance
+    const adminInitialBalance = await provider.connection.getBalance(lottery_admin.publicKey);
 
-  //   // Execute withdrawal
-  //   await program.methods.withdrawEscrow()
-  //     .accounts({
-  //       lottery: lottery.publicKey,
-  //       admin: admin.publicKey,
-  //     })
-  //     .rpc();
+    // Execute withdrawal
+    await program.methods.withdrawEscrow()
+      .accounts({
+        lottery: lottery.publicKey,
+        admin: lottery_admin.publicKey,
+      })
+      .rpc();
 
-  //   // Fetch updated balances
-  //   const adminFinalBalance = await provider.connection.getBalance(admin.publicKey);
-  //   const updatedLottery = await program.account.lottery.fetch(lottery.publicKey);
+    // Fetch updated balances
+    const adminFinalBalance = await provider.connection.getBalance(lottery_admin.publicKey);
+    const updatedLottery = await program.account.lottery.fetch(lottery.publicKey);
 
-  //   // Verify the escrow amount was transferred to the admin
-  //   assert.equal(
-  //     adminFinalBalance - adminInitialBalance,
-  //     escrowAmount,
-  //     "Admin should receive the full escrow amount"
-  //   );
+    // Verify the escrow amount was transferred to the admin
+    assert.equal(
+      adminFinalBalance - adminInitialBalance,
+      escrowAmount,
+      "Admin should receive the full escrow amount"
+    );
 
-  //   // Verify escrow is now empty
-  //   assert.equal(
-  //     updatedLottery.escrow,
-  //     0,
-  //     "Escrow balance should be reset to 0 after withdrawal"
-  //   );
-  // });
+    // Verify escrow is now empty
+    assert.equal(
+      updatedLottery.escrow,
+      0,
+      "Escrow balance should be reset to 0 after withdrawal"
+    );
+  });
 
 });
