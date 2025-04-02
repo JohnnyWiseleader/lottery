@@ -174,17 +174,18 @@ pub struct Payout<'info> {
     pub ticket: Account<'info, Ticket>,            // Winning PDA
 }
 
+// Accounts
+////////////////////////////////////////////////////////////////
 #[derive(Accounts)]
 pub struct WithdrawEscrow<'info> {
     #[account(mut, has_one = authority)]  
     pub lottery: Account<'info, Lottery>,
-    #[account(mut)]
-    pub admin: Signer<'info>, 
-    pub authority: Signer<'info>, // Ensure authority is part of the struct
-}
+    #[account(mut, signer)]  // Ensure admin is a signer
+    pub admin: Signer<'info>,  
 
-// Accounts
-////////////////////////////////////////////////////////////////
+    /// CHECK: This ensures the authority is used for verification but doesn't need to be mutable
+    pub authority: AccountInfo<'info>, 
+}
 
 // Lottery account 
 #[account]

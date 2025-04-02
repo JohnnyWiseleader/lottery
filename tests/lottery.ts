@@ -360,6 +360,9 @@ describe("lottery", () => {
     const escrowAmount = lotteryAccount.escrow;
     assert(escrowAmount > 0, "Escrow should have funds before withdrawal");
 
+    console.log("Stored admin:", lotteryAccount.authority.toBase58());
+    console.log("Test admin:", lottery_admin.publicKey.toBase58());
+
     // Fetch admin's initial balance
     const adminInitialBalance = await provider.connection.getBalance(lottery_admin.publicKey);
 
@@ -369,6 +372,7 @@ describe("lottery", () => {
         lottery: lottery.publicKey,
         admin: lottery_admin.publicKey,
       })
+      .signers([lottery_admin]) // <-- Ensure admin signs the transactions
       .rpc();
 
     // Fetch updated balances
