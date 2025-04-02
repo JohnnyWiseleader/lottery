@@ -2,6 +2,15 @@ use anchor_lang::prelude::*;
 
 declare_id!("J5ftJMytMb7sYj4wRnv65zjumcQspuuoyuWBDLcqp57i");
 
+#[error_code]
+pub enum LotteryError {
+    #[msg("Unauthorized access")]
+    Unauthorized,
+    
+    #[msg("No funds available in escrow")]
+    NoEscrowFunds,
+}
+
 #[program]
 pub mod lottery {
     use super::*;       
@@ -171,6 +180,7 @@ pub struct WithdrawEscrow<'info> {
     pub lottery: Account<'info, Lottery>,
     #[account(mut)]
     pub admin: Signer<'info>, 
+    pub authority: Signer<'info>, // Ensure authority is part of the struct
 }
 
 // Accounts
