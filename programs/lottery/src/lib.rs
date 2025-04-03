@@ -101,6 +101,9 @@ pub mod lottery {
     pub fn withdraw_escrow(ctx: Context<WithdrawEscrow>) -> Result<()> {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
         let admin: &mut Signer = &mut ctx.accounts.admin;
+
+        msg!("Lottery authority: {}", lottery.authority);
+        msg!("Admin signer: {}", admin.key());
     
         // Ensure only the admin can withdraw
         require_keys_eq!(lottery.authority, admin.key(), LotteryError::Unauthorized);
@@ -178,9 +181,11 @@ pub struct Payout<'info> {
 pub struct WithdrawEscrow<'info> {
     #[account(mut, has_one = authority)]  
     pub lottery: Account<'info, Lottery>,
-    #[account(mut)]
-    pub admin: Signer<'info>, 
-    pub authority: Signer<'info>, // Ensure authority is part of the struct
+    #[account(mut, signer)]  
+    pub admin: Signer<'info>,
+
+    /// CHECK: This ensures the authority is used for verification but doesn't need to be mutable
+    pub authority: AccountInfo<'info>, 
 }
 
 // Accounts
