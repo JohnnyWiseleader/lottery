@@ -59,7 +59,7 @@ describe("lottery", () => {
           admin: lotteryAdmin.publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .signers([lotteryAdmin])
+        .signers([lottery, lotteryAdmin])
         .rpc();
 
       console.log("Lottery account initialized at:", lottery.publicKey.toString());
