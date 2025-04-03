@@ -180,11 +180,8 @@ pub struct Payout<'info> {
 pub struct WithdrawEscrow<'info> {
     #[account(mut, has_one = authority)]  
     pub lottery: Account<'info, Lottery>,
-    #[account(mut, signer)]  // Ensure admin is a signer
+    #[account(mut, signer)]  
     pub admin: Signer<'info>,  
-
-    /// CHECK: This ensures the authority is used for verification but doesn't need to be mutable
-    pub authority: AccountInfo<'info>, 
 }
 
 // Lottery account 

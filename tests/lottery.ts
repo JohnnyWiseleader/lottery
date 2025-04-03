@@ -13,7 +13,7 @@ describe("lottery", () => {
 
   // Account address generated here
   const lottery = anchor.web3.Keypair.generate();
-  const lottery_admin = anchor.web3.Keypair.generate();
+  const lotteryAdmin = anchor.web3.Keypair.generate();
   const player1 = anchor.web3.Keypair.generate();
   const player2 = anchor.web3.Keypair.generate();
   const skintPlayer3 = anchor.web3.Keypair.generate();
@@ -38,7 +38,7 @@ describe("lottery", () => {
     );
     await provider.connection.confirmTransaction(
       await provider.connection.requestAirdrop(
-        lottery_admin.publicKey,
+        lotteryAdmin.publicKey,
         2 * LAMPORTS_PER_SOL
       )
     );
@@ -56,10 +56,10 @@ describe("lottery", () => {
         .initialiseLottery(new anchor.BN(LAMPORTS_PER_SOL), oracle.publicKey)
         .accounts({
           lottery: lottery.publicKey,
-          admin: lottery_admin.publicKey,
+          admin: lotteryAdmin.publicKey,
           systemProgram: SystemProgram.programId,
         })
-        .signers([lottery, lottery_admin])
+        .signers([lotteryAdmin])
         .rpc();
 
       console.log("Lottery account initialized at:", lottery.publicKey.toString());
@@ -72,7 +72,7 @@ describe("lottery", () => {
 
       // Assert authority matches lottery admin
       expect(lotteryState.authority.toString()).to.equal(
-        lottery_admin.publicKey.toString()
+        lotteryAdmin.publicKey.toString()
       );
 
       // Assert ticket price has been set
@@ -314,69 +314,28 @@ describe("lottery", () => {
     );
   });
 
-  // it("Pays out 90% of the balance to the winner and retains 10% in escrow", async () => {
-  //   const lotteryAccount = await program.account.lottery.fetch(lottery.publicKey);
-  //   const initialBalance = await provider.connection.getBalance(lottery.publicKey);
-
-  //   // Ensure there is a balance to distribute
-  //   assert(initialBalance > 0, "Lottery account should have funds before payout");
-
-  //   // Fetch the winner's initial balance
-  //   const winnerInitialBalance = await provider.connection.getBalance(winner.publicKey);
-
-  //   // Execute payout
-  //   await program.methods.payOutWinner()
-  //     .accounts({
-  //       lottery: lottery.publicKey,
-  //       winner: winner.publicKey,
-  //       ticket: winningTicket.publicKey,
-  //     })
-  //     .rpc();
-
-  //   // Fetch updated balances
-  //   const winnerFinalBalance = await provider.connection.getBalance(winner.publicKey);
-  //   const lotteryFinalBalance = await provider.connection.getBalance(lottery.publicKey);
-  //   const updatedLottery = await program.account.lottery.fetch(lottery.publicKey);
-
-  //   // Verify 90% was transferred to the winner
-  //   const expectedPayout = Math.floor(initialBalance * 0.9);
-  //   assert.equal(
-  //     winnerFinalBalance - winnerInitialBalance,
-  //     expectedPayout,
-  //     "Winner should receive 90% of the lottery balance"
-  //   );
-
-  //   // Verify 10% remains in escrow
-  //   const expectedHoldback = Math.floor(initialBalance * 0.1);
-  //   assert.equal(
-  //     updatedLottery.escrow,
-  //     expectedHoldback,
-  //     "10% of the balance should be stored in escrow"
-  //   );
-  // });
-
   it("Allows the admin to withdraw the 10% holdback", async () => {
     const lotteryAccount = await program.account.lottery.fetch(lottery.publicKey);
     const escrowAmount = lotteryAccount.escrow;
     assert(escrowAmount > 0, "Escrow should have funds before withdrawal");
 
     console.log("Stored admin:", lotteryAccount.authority.toBase58());
-    console.log("Test admin:", lottery_admin.publicKey.toBase58());
+    console.log("Test admin:", lotteryAdmin.publicKey.toBase58());
 
     // Fetch admin's initial balance
-    const adminInitialBalance = await provider.connection.getBalance(lottery_admin.publicKey);
+    const adminInitialBalance = await provider.connection.getBalance(lotteryAdmin.publicKey);
 
     // Execute withdrawal
     await program.methods.withdrawEscrow()
-      .accounts({
-        lottery: lottery.publicKey,
-        admin: lottery_admin.publicKey,
-      })
-      .signers([lottery_admin]) // <-- Ensure admin signs the transactions
-      .rpc();
+    .accounts({
+      lottery: lottery.publicKey,
+      admin: lotteryAdmin.publicKey,
+    })
+    .signers([lotteryAdmin])
+    .rpc();
 
     // Fetch updated balances
-    const adminFinalBalance = await provider.connection.getBalance(lottery_admin.publicKey);
+    const adminFinalBalance = await provider.connection.getBalance(lotteryAdmin.publicKey);
     const updatedLottery = await program.account.lottery.fetch(lottery.publicKey);
 
     // Verify the escrow amount was transferred to the admin
