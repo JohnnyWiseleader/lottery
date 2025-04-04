@@ -20,7 +20,7 @@ pub mod lottery {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
 
         // Set the authority and admin fields
-        lottery.authority = ctx.accounts.authority.key();
+        lottery.authority = ctx.accounts.admin.key();
         lottery.admin = ctx.accounts.admin.key();  // Assign the admin public key
         
         lottery.count = 0;
@@ -107,15 +107,15 @@ pub mod lottery {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
         let admin: &mut Signer = &mut ctx.accounts.admin;
 
-        if ctx.accounts.lottery.admin != *ctx.accounts.admin.to_account_info().key {
-            return Err(ProgramError::IncorrectAuthority);
-        }
+        //if ctx.accounts.lottery.admin != *ctx.accounts.admin.to_account_info().key {
+        //    return Err(ProgramError::IncorrectAuthority);
+        //}
 
-        // msg!("Lottery authority: {}", lottery.authority);
-        // msg!("Admin signer: {}", admin.key());
+        msg!("Lottery authority: {}", lottery.authority);
+        msg!("Admin signer: {}", admin.key());
     
-        // // Ensure only the admin can withdraw
-        // require_keys_eq!(lottery.authority, admin.key(), LotteryError::Unauthorized);
+        // Ensure only the admin can withdraw
+        require_keys_eq!(lottery.authority, admin.key(), LotteryError::Unauthorized);
     
         // Get escrowed balance
         let escrow_amount = lottery.escrow;
