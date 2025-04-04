@@ -16,12 +16,17 @@ pub mod lottery {
     use super::*;       
 
     // Creates an account for the lottery
-    pub fn initialise_lottery(ctx: Context<Create>, ticket_price: u64, oracle_pubkey: Pubkey) -> Result<()> {        
-        let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;        
-        lottery.authority = ctx.accounts.admin.key();                
-        lottery.count = 0;           
+    pub fn initialise_lottery(ctx: Context<Create>, ticket_price: u64, oracle_pubkey: Pubkey) -> Result<()> {
+        let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
+
+        // Set the authority and admin fields
+        lottery.authority = ctx.accounts.authority.key();
+        lottery.admin = ctx.accounts.admin.key();  // Assign the admin public key
+        
+        lottery.count = 0;
         lottery.ticket_price = ticket_price;
         lottery.oracle = oracle_pubkey;
+        lottery.escrow = 0;  // Initialize escrow field as 0
 
         Ok(())
     }
@@ -102,11 +107,15 @@ pub mod lottery {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
         let admin: &mut Signer = &mut ctx.accounts.admin;
 
-        msg!("Lottery authority: {}", lottery.authority);
-        msg!("Admin signer: {}", admin.key());
+        if ctx.accounts.lottery.admin != *ctx.accounts.admin.to_account_info().key {
+            return Err(ProgramError::IncorrectAuthority);
+        }
+
+        // msg!("Lottery authority: {}", lottery.authority);
+        // msg!("Admin signer: {}", admin.key());
     
-        // Ensure only the admin can withdraw
-        require_keys_eq!(lottery.authority, admin.key(), LotteryError::Unauthorized);
+        // // Ensure only the admin can withdraw
+        // require_keys_eq!(lottery.authority, admin.key(), LotteryError::Unauthorized);
     
         // Get escrowed balance
         let escrow_amount = lottery.escrow;
@@ -179,11 +188,10 @@ pub struct Payout<'info> {
 
 #[derive(Accounts)]
 pub struct WithdrawEscrow<'info> {
-    #[account(mut, has_one = authority)]  
+    #[account(mut, has_one = authority, has_one = admin)]  
     pub lottery: Account<'info, Lottery>,
     #[account(mut, signer)]  
     pub admin: Signer<'info>,
-
     /// CHECK: This ensures the authority is used for verification but doesn't need to be mutable
     pub authority: AccountInfo<'info>, 
 }
@@ -193,8 +201,9 @@ pub struct WithdrawEscrow<'info> {
 
 // Lottery account 
 #[account]
-pub struct Lottery {    
+pub struct Lottery {
     pub authority: Pubkey, 
+    pub admin: Pubkey, 
     pub oracle: Pubkey, 
     pub winner: Pubkey,
     pub winner_index: u32, 
@@ -210,4 +219,3 @@ pub struct Ticket {
     pub submitter: Pubkey,    
     pub idx: u32,
 }
-
