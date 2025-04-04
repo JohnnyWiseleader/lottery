@@ -327,12 +327,12 @@ describe("lottery", () => {
 
     // Execute withdrawal
     await program.methods.withdrawEscrow()
-    .accounts({
-      lottery: lottery.publicKey,
-      admin: lotteryAdmin.publicKey,
-    })
-    .signers([lotteryAdmin])
-    .rpc();
+      .accounts({
+        lottery: lottery.publicKey,
+        admin: lotteryAdmin.publicKey,
+      })
+      .signers([lotteryAdmin])
+      .rpc();
 
     // Fetch updated balances
     const adminFinalBalance = await provider.connection.getBalance(lotteryAdmin.publicKey);
@@ -352,5 +352,21 @@ describe("lottery", () => {
       "Escrow balance should be reset to 0 after withdrawal"
     );
   });
+
+  // it("Rejects unauthorized escrow withdrawal", async () => {
+  //   try {
+  //     await program.methods.withdrawEscrow()
+  //       .accounts({
+  //         lottery: lottery.publicKey,
+  //         admin: player1.publicKey, // Non-admin attempting withdrawal
+  //       })
+  //       .signers([player1])
+  //       .rpc();
+  //     assert(false, "Unauthorized user should not be able to withdraw escrow");
+  //   } catch (err) {
+  //     const expectedErrMsg = "AnchorError caused by account: admin. Error Code: ConstraintRaw. Error Message: A raw constraint was violated.";
+  //     assert.equal(err.toString(), expectedErrMsg, "Expected unauthorized error");
+  //   }
+  // });
 
 });
