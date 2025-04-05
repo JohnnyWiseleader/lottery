@@ -12,7 +12,7 @@ lottery = "J5ftJMytMb7sYj4wRnv65zjumcQspuuoyuWBDLcqp57i"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "http://127.0.0.1:8899"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
