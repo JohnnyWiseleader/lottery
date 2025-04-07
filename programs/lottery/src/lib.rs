@@ -85,17 +85,6 @@ pub mod lottery {
 
     // Payout prize to the winner
     pub fn pay_out_winner(ctx: Context<Payout>) -> Result<()> {
-        // Check if it matches the winner address
-        let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
-        let recipient: &mut AccountInfo = &mut ctx.accounts.winner;
-    
-        // Transfer 90% balance (payout) to the winner
-        **recipient.to_account_info().try_borrow_mut_lamports()? = lottery.payout;
-    
-        Ok(())
-    }
-
-    pub fn pay_out_winner(ctx: Context<Payout>) -> Result<()> {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
         let recipient: &mut AccountInfo = &mut ctx.accounts.winner;
     
