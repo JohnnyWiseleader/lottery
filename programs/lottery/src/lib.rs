@@ -21,7 +21,7 @@ pub mod lottery {
     // Creates an account for the lottery
     pub fn initialise_lottery(ctx: Context<Create>, ticket_price: u64, oracle_pubkey: Pubkey) -> Result<()> {        
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;        
-        lottery.authority = ctx.accounts.admin.key();                
+        lottery.admin = ctx.accounts.admin.key();
         lottery.count = 0;           
         lottery.ticket_price = ticket_price;
         lottery.oracle = oracle_pubkey;
@@ -110,7 +110,7 @@ pub mod lottery {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
         let admin: &mut Signer = &mut ctx.accounts.admin;
     
-        msg!("Lottery authority: {}", lottery.authority);
+        msg!("Lottery admin: {}", lottery.admin);
         msg!("Admin signer: {}", admin.key());
     
         // Ensure only the admin can withdraw
@@ -189,13 +189,10 @@ pub struct Payout<'info> {
 
 #[derive(Accounts)]
 pub struct WithdrawEscrow<'info> {
-    #[account(mut, has_one = authority)]  
+    #[account(mut, has_one = admin)]  
     pub lottery: Account<'info, Lottery>,
     #[account(mut, signer)]  
     pub admin: Signer<'info>,
-
-    /// CHECK: This ensures the authority is used for verification but doesn't need to be mutable
-    pub authority: AccountInfo<'info>, 
 }
 
 // Accounts
@@ -204,7 +201,7 @@ pub struct WithdrawEscrow<'info> {
 // Lottery account 
 #[account]
 pub struct Lottery {    
-    pub authority: Pubkey, 
+    pub admin: Pubkey, 
     pub oracle: Pubkey, 
     pub winner: Pubkey,
     pub winner_index: u32, 
