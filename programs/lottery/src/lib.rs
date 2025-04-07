@@ -9,6 +9,9 @@ pub enum LotteryError {
     
     #[msg("No funds available in escrow")]
     NoEscrowFunds,
+
+    #[msg("No funds available in pay out")]
+    NoPayoutFunds,    
 }
 
 #[program]
