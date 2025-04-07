@@ -26,13 +26,12 @@ pub mod lottery {
         Ok(())
     }
 
-    // Buy a lottery ticket
+
     pub fn buy_ticket(ctx: Context<Submit>) -> Result<()> {
-        
         // Deserialise lottery account
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;          
         let player: &mut Signer = &mut ctx.accounts.player;                 
-
+    
         // Transfer lamports to the lottery account
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &player.key(),
@@ -46,20 +45,30 @@ pub mod lottery {
                 lottery.to_account_info(),
             ],
         )?;
-
+    
+        // Calculate holdback (10% of the ticket price)
+        let holdback_amount = lottery.ticket_price / 10;
+    
+        // Calculate payout (90% of the ticket price)
+        let payout_amount = lottery.ticket_price - holdback_amount;
+    
+        // Update escrow and payout fields
+        lottery.escrow += holdback_amount;
+        lottery.payout += payout_amount;
+    
         // Deserialise ticket account
         let ticket: &mut Account<Ticket> = &mut ctx.accounts.ticket;                
-
-        // Set submitter field as the address pays for account creation
+    
+        // Set submitter field as the address that pays for account creation
         ticket.submitter = ctx.accounts.player.key();
-
+    
         // Set ticket index equal to the counter
         ticket.idx = lottery.count;        
-
+    
         // Increment total submissions counter
         lottery.count += 1;                      
-
-        Ok(())  
+    
+        Ok(())
     }
     
     // Oracle picks winner index
@@ -80,47 +89,56 @@ pub mod lottery {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
         let recipient: &mut AccountInfo = &mut ctx.accounts.winner;
     
-        // Get total balance
-        let balance: u64 = lottery.to_account_info().lamports();
-    
-        // Calculate 10% holdback
-        let holdback_amount: u64 = balance / 10;
-        let payout_amount: u64 = balance - holdback_amount;
-    
-        // Store the holdback in the escrow field
-        lottery.escrow += holdback_amount;
-    
-        // Transfer 90% to the winner
-        **lottery.to_account_info().try_borrow_mut_lamports()? -= payout_amount;
-        **recipient.to_account_info().try_borrow_mut_lamports()? += payout_amount;
+        // Transfer 90% balance (payout) to the winner
+        **recipient.to_account_info().try_borrow_mut_lamports()? = lottery.payout;
     
         Ok(())
     }
 
-    // allow admin to withdraw 10% of funds from escrow
+    pub fn pay_out_winner(ctx: Context<Payout>) -> Result<()> {
+        let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
+        let recipient: &mut AccountInfo = &mut ctx.accounts.winner;
+    
+        // Ensure payout amount is valid
+        let payout_amount = lottery.payout;
+        require!(payout_amount > 0, LotteryError::NoPayoutFunds);
+    
+        // Transfer payout amount to the winner
+        **lottery.to_account_info().try_borrow_mut_lamports()? -= payout_amount;
+        **recipient.to_account_info().try_borrow_mut_lamports()? += payout_amount;
+    
+        // Reset payout field after funds are transferred
+        lottery.payout = 0;
+    
+        Ok(())
+    }    
+
+    // allow admin to withdraw funds from escrow
     pub fn withdraw_escrow(ctx: Context<WithdrawEscrow>) -> Result<()> {
         let lottery: &mut Account<Lottery> = &mut ctx.accounts.lottery;
         let admin: &mut Signer = &mut ctx.accounts.admin;
-
+    
         msg!("Lottery authority: {}", lottery.authority);
         msg!("Admin signer: {}", admin.key());
     
         // Ensure only the admin can withdraw
-        require_keys_eq!(lottery.authority, admin.key(), LotteryError::Unauthorized);
+        require_keys_eq!(lottery.admin, admin.key(), LotteryError::Unauthorized);
     
         // Get escrowed balance
         let escrow_amount = lottery.escrow;
         require!(escrow_amount > 0, LotteryError::NoEscrowFunds);
     
-        // Reset escrow in the lottery struct
-        lottery.escrow = 0;
-    
-        // Transfer escrow funds to admin
+        // Transfer escrow funds to admin FIRST
         **lottery.to_account_info().try_borrow_mut_lamports()? -= escrow_amount;
         **admin.to_account_info().try_borrow_mut_lamports()? += escrow_amount;
     
+        // Reset escrow balance AFTER withdrawal
+        lottery.escrow = 0;
+    
+        msg!("Admin successfully withdrew {} lamports", escrow_amount);
+    
         Ok(())
-    }    
+    }
 }
 
 // Contexts
@@ -200,7 +218,8 @@ pub struct Lottery {
     pub winner_index: u32, 
     pub count: u32,
     pub ticket_price: u64,
-    pub escrow: u64, // hold 10% of payout in this field
+    pub payout: u64, // hold 90% of total in this field
+    pub escrow: u64, // hold 10% of total in this field
 }
 
 // Ticket PDA
